@@ -1,18 +1,19 @@
 import edge_tts
 import asyncio
+import tempfile
+import os
+import traceback
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import io
-import os
 
 app = FastAPI(title="Zabon TTS Service", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["POST", "OPTIONS"],
+    allow_methods=["POST", "OPTIONS", "GET"],
     allow_headers=["*"],
 )
 
@@ -30,6 +31,11 @@ class TTSRequest(BaseModel):
     lang: str | None = "en"
 
 
+@app.get("/")
+async def root():
+    return {"service": "zabon-tts", "status": "running"}
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
@@ -42,21 +48,21 @@ async def generate_tts(req: TTSRequest):
 
     voice = req.voice or VOICES.get(req.lang, "en-US-AriaNeural")
 
+    tmp_path = None
     try:
-        communicate = edge_tts.Communicate(req.text, voice)
-        audio_chunks: list[bytes] = []
+        communicate = edge_tts.Communicate(req.text.strip(), voice)
 
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_chunks.append(chunk["data"])
+        tmp_path = tempfile.mktemp(suffix=".mp3")
+        await communicate.save(tmp_path)
 
-        if not audio_chunks:
+        if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
             raise HTTPException(status_code=500, detail="TTS produced no audio")
 
-        audio_data = b"".join(audio_chunks)
+        with open(tmp_path, "rb") as f:
+            audio_data = f.read()
 
-        return StreamingResponse(
-            io.BytesIO(audio_data),
+        return Response(
+            content=audio_data,
             media_type="audio/mpeg",
             headers={
                 "Content-Disposition": "attachment; filename=tts.mp3",
@@ -66,7 +72,15 @@ async def generate_tts(req: TTSRequest):
     except HTTPException:
         raise
     except Exception as e:
+        tb = traceback.format_exc()
+        print(f"TTS ERROR: {e}\n{tb}")
         raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
