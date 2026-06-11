@@ -18,10 +18,10 @@ app.add_middleware(
 )
 
 VOICES = {
-    "en": "en-US-AriaNeural",
-    "ru": "ru-RU-SvetlanaNeural",
-    "tr": "tr-TR-EmelNeural",
-    "ar": "ar-SA-ZariyahNeural",
+    "en": "en-US-GuyNeural",
+    "ru": "ru-RU-DmitryNeural",
+    "tr": "tr-TR-AhmetNeural",
+    "ar": "ar-SA-HamedNeural",
 }
 
 
