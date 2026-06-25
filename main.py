@@ -22,6 +22,7 @@ VOICES = {
     "ru": "ru-RU-DmitryNeural",
     "tr": "tr-TR-AhmetNeural",
     "ar": "ar-SA-HamedNeural",
+    "uz": "uz-UZ-SardorNeural",
 }
 
 
