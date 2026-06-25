@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping Render service
         run: |
-          curl -s https://tts-t3l6.onrender.com/health || echo "Ping failed, but that's okay"
+          curl -s https://zabon-tts.onrender.com/health || echo "Ping failed, but that's okay"
